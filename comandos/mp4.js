@@ -95,29 +95,33 @@ module.exports = async (ctx) => {
             // Exclui o arquivo baixado
             fs.unlinkSync(fileName);
             console.log(`Arquivo ${fileName} excluído com sucesso.`);
+            ctx.deleteMessage(lowResolution.message_id);
           });
         
         try {
-          // Obtendo informações do vídeo usando a biblioteca ytdl
-          const info = await ytdl.getInfo(videoUrl);
-          const videoTitle = info.videoDetails.title;
-          const fileName = `${videoTitle}.mp4`;
-  
-          // Baixando o vídeo em um formato de menor tamanho (qualidade 18)
-          const video = ytdl(videoUrl, { quality: '18' });
-  
-          // Enviando o vídeo para o usuário
-          await ctx.replyWithVideo({ source: video }, { caption: caption, parse_mode: 'Markdown' })
-            .then(() => {
-              console.log(`Arquivo ${fileName} enviado com sucesso.`);
-              ctx.deleteMessage(lowResolution.message_id);
-            })
-            .catch(async (error) => {
-              console.error(`Erro ao enviar o arquivo: ${error}`);
-              await ctx.reply(`${error}, deu ruim família.`);
-              ctx.deleteMessage(message.message_id);
-            });
-          return;
+          if (videoUrl.includes('music.youtube') || videoUrl.includes('youtube')){
+            // Obtendo informações do vídeo usando a biblioteca ytdl
+            const info = await ytdl.getInfo(videoUrl);
+            const videoTitle = info.videoDetails.title;
+            const fileName = `${videoTitle}.mp4`;
+    
+            // Baixando o vídeo em um formato de menor tamanho (qualidade 18)
+            const video = ytdl(videoUrl, { quality: '18' });
+    
+            // Enviando o vídeo para o usuário
+            await ctx.replyWithVideo({ source: video }, { caption: caption, parse_mode: 'Markdown' })
+              .then(() => {
+                console.log(`Arquivo ${fileName} enviado com sucesso.`);
+                ctx.deleteMessage(lowResolution.message_id);
+              })
+              .catch(async (error) => {
+                console.error(`Erro ao enviar o arquivo: ${error}`);
+                await ctx.reply(`${error}, deu ruim família.`);
+                ctx.deleteMessage(message.message_id);
+                return;
+              });
+            return;
+          }
         } catch (error) {
           console.error(`Erro ao obter informações do link: ${error}`);
           await ctx.reply(`Ocorreu um erro ao obter informações do link.`);
@@ -140,7 +144,6 @@ module.exports = async (ctx) => {
         })
         .catch(async (error) => {
           console.error(`Erro ao enviar o arquivo: ${error}`);
-          await ctx.reply('Ocorreu um erro ao baixar o vídeo. Tente novamente mais tarde.');
         });
     } else {
       // Caso ocorra um erro ao baixar o vídeo
