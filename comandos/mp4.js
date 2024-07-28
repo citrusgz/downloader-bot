@@ -1,6 +1,5 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
-const ytdl = require('ytdl-core');
 
 module.exports = async (ctx) => {
   const message = await ctx.reply('Por favor, aguarde enquanto baixamos o vídeo.');
@@ -95,34 +94,30 @@ module.exports = async (ctx) => {
             // Exclui o arquivo baixado
             fs.unlinkSync(fileName);
             console.log(`Arquivo ${fileName} excluído com sucesso.`);
-            ctx.deleteMessage(lowResolution.message_id);
           });
         
-        try {
-          if (videoUrl.includes('music.youtube') || videoUrl.includes('youtube')){
-            // Obtendo informações do vídeo usando a biblioteca ytdl
-            const info = await ytdl.getInfo(videoUrl);
-            const videoTitle = info.videoDetails.title;
-            const fileName = `${videoTitle}.mp4`;
-    
-            // Baixando o vídeo em um formato de menor tamanho (qualidade 18)
-            const video = ytdl(videoUrl, { quality: '18' });
-    
-            // Enviando o vídeo para o usuário
-            await ctx.replyWithVideo({ source: video }, { caption: caption, parse_mode: 'Markdown' })
-              .then(() => {
-                console.log(`Arquivo ${fileName} enviado com sucesso.`);
-                ctx.deleteMessage(lowResolution.message_id);
-              })
-              .catch(async (error) => {
-                console.error(`Erro ao enviar o arquivo: ${error}`);
-                await ctx.reply(`${error}, deu ruim família.`);
-                ctx.deleteMessage(message.message_id);
-                return;
-              });
-            return;
-          }
-        } catch (error) {
+          try {
+            const smallVideo = `${makeVideoName(5)}.mp4`;
+            const ytDlpProcess = spawn('yt-dlp', ['-f', 'worstvideo+worstaudio', '-o', smallVideo, videoUrl]);
+        
+            ytDlpProcess.on('close', async (code) => {
+              if (code === 0) {
+                console.log('Download finished');
+                try {
+                  await ctx.replyWithVideo({ source: smallVideo }, { caption: caption, parse_mode: 'Markdown' })
+                  console.log('Video sent to user');
+                  ctx.deleteMessage(lowResolution.message_id);
+                  fs.unlinkSync(smallVideo);
+                } catch (error) {
+                  console.error('Error sending video:', error);
+                }
+              } else {
+                console.error(`yt-dlp process exited with code ${code}`);
+              }
+            });
+        
+            ytDlpProcess.stdin.end();
+          } catch (error) {
           console.error(`Erro ao obter informações do link: ${error}`);
           await ctx.reply(`Ocorreu um erro ao obter informações do link.`);
           await ctx.reply('Por favor envie um link reconhecido, como links do Instagram, Pinterest, Tumblr, Youtube, TikTok ou Reddit. Facebook e stories não são suportados.');

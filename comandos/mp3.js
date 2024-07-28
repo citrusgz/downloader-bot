@@ -1,37 +1,60 @@
-const ytdl = require('ytdl-core');
+const { spawn } = require('child_process');
+const fs = require('fs');
 
 module.exports = async (ctx) => {
   const message = await ctx.reply('Por favor, aguarde enquanto baixamos a música.');
+
   // Obtendo a URL do áudio a partir da mensagem enviada pelo usuário
-  if(ctx.message.text.includes('mp3' || 'MP3' || 'Mp3' || 'mP3')){
-    var audioUrl = ctx.message.text.split(' ')[1];
+  let audioUrl;
+  if (ctx.message.text.toLowerCase().includes('mp3')) {
+    audioUrl = ctx.message.text.split(' ')[1];
   } else {
-    var audioUrl = ctx.message.text;
+    audioUrl = ctx.message.text;
   }
 
   try {
-    // Obtendo informações do áudio usando a biblioteca ytdl
-    const info = await ytdl.getInfo(audioUrl);
-    const videoTitle = info.videoDetails.title;
-    const fileName = `${videoTitle}.mp3`;
+    const metadata = await new Promise((resolve, reject) => {
+      const ytDlpProcess = spawn('yt-dlp', ['-j', audioUrl]);
 
-    // Baixando o áudio
-    const stream = ytdl(audioUrl, { quality: 'highestaudio',filter: 'audioonly' });
-
-    // Enviando o áudio para o usuário
-    await ctx.replyWithAudio({ source: stream, filename: fileName })
-      .then(() => {
-        ctx.deleteMessage(message.message_id);
-        console.log(`Arquivo ${fileName} enviado com sucesso.`);
-      })
-      .catch(async(error) => {
-        ctx.deleteMessage(message.message_id);
-        console.error(`Erro ao enviar o arquivo: ${error}`);
-        await ctx.reply(`${error}, deu ruim família.`);
+      let data = '';
+      ytDlpProcess.stdout.on('data', (chunk) => {
+        data += chunk;
       });
+
+      ytDlpProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve(JSON.parse(data));
+        } else {
+          reject(new Error(`yt-dlp process exited with code ${code}`));
+        }
+      });
+    });
+
+    const audioTitle = metadata.title.replace(/[<>:"\/\\|?*]+/g, '');
+    const audioFileName = `${audioTitle}.mp3`;
+
+    // Baixar o áudio usando yt-dlp
+    const downloadProcess = spawn('yt-dlp', ['-f', 'bestaudio', '-o', audioFileName, audioUrl]);
+
+    downloadProcess.on('close', async (code) => {
+      if (code === 0) {
+        console.log('Audio download finished');
+        try {
+          await ctx.replyWithDocument({ source: fs.createReadStream(audioFileName), filename: audioFileName });
+          console.log('Audio sent to user');
+          ctx.deleteMessage(message.message_id);
+          fs.unlinkSync(audioFileName);
+        } catch (error) {
+          console.error('Error sending audio:', error);
+        }
+      } else {
+        console.error(`yt-dlp process exited with code ${code}`);
+      }
+    });
+
   } catch (error) {
     ctx.deleteMessage(message.message_id);
     console.error(`Erro ao obter informações do link: ${error}`);
-    await ctx.reply(`Ocorreu um erro ao obter informações do da música. Envie novamente um link do YouTube.`);
+    await ctx.reply(`Ocorreu um erro ao obter informações da música. Envie novamente um link do YouTube.`);
   }
 };

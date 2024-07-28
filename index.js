@@ -55,7 +55,7 @@ bot.use(async (ctx, next) => {
       }
     } else {
       const commandPromises = [];
-      if (enabledSocialMediaDownload) {
+      if (enabledSocialMediaDownload && !validCommands.includes(command)) {
         commandPromises.push(mp4(ctx));
         if (ctx.message.text.includes('youtube.com') || ctx.message.text.includes('youtu.be')) {
           commandPromises.push(mp3(ctx));
