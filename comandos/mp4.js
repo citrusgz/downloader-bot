@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
+const path = require('path');   
 
 module.exports = async (ctx) => {
   const message = await ctx.reply('Por favor, aguarde enquanto baixamos o vídeo.');
@@ -56,8 +57,43 @@ module.exports = async (ctx) => {
   // Criando a legenda que será exibida junto com o vídeo
   const caption = `[🔗Fonte](${videoUrl})`;
 
-  // Definindo o caminho do arquivo de cookies para um local acessível
-  const cookiesPath = '../cookies.txt';
+  // Função para verificar se o ambiente é um container (Docker ou Podman)
+  function isContainer() {
+    try {
+      // Verifica se o arquivo /.dockerenv existe (Docker)
+      if (fs.existsSync('/.dockerenv')) {
+        return 'docker';
+      }
+
+      // Lê o arquivo /proc/1/cgroup para verificar se há referência a Podman ou Docker
+      const cgroupContent = fs.readFileSync('/proc/1/cgroup', 'utf8');
+      if (cgroupContent.includes('podman')) {
+        return 'podman';
+      } else if (cgroupContent.includes('docker')) {
+        return 'docker';
+      }
+
+      // Se nenhuma das condições acima for atendida, assume que não é um container
+      return 'none';
+    } catch (err) {
+      // Se houver um erro na leitura do arquivo, assume que não é um container
+      console.error('Não foi possível verificar o ambiente. Assumindo que não é um container.');
+      return 'none';
+    }
+  }
+
+  // Definindo o caminho dos cookies com base no ambiente
+  let cookiesPath;
+
+  const containerType = isContainer();
+
+  if (containerType === 'podman') {
+    cookiesPath = '/usr/src/bot/cookies.txt';
+  } else if (containerType === 'docker') {
+    cookiesPath = '/usr/src/bot/cookies.txt';
+  } else {
+    cookiesPath = path.join(__dirname, '../cookies.txt');
+  }
 
   // Executando o comando 'yt-dlp' para baixar o vídeo, incluindo o arquivo de cookies
   const ytDlp = spawn('yt-dlp', [
