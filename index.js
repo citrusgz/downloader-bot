@@ -44,7 +44,7 @@ bot.use(async (ctx, next) => {
   if (ctx.message && ctx.message.text) {
     config.logInteraction(ctx);
     const command = ctx.message.text.split(' ')[0].toLowerCase();
-    const enabledSocialMediaDownload = ['youtube.com', 'youtu.be', 'x.com', 'twitter.com', 'instagram.com', 'tiktok.com', 'reddit.com']
+    const enabledSocialMediaDownload = ['youtube.com', 'youtu.be', 'x.com', 'twitter.com', 'instagram.com', 'tiktok.com', 'reddit.com', 'bsky.app']
       .some(domain => ctx.message.text.includes(domain));
 
     if (!validCommands.includes(command) && !enabledSocialMediaDownload) {
