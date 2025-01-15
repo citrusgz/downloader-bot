@@ -12,7 +12,7 @@ module.exports = async (ctx) => {
     var videoUrl = ctx.message.text;
   }
   
-  if (!videoUrl || videoUrl.includes('t.me') || videoUrl.includes('threads.net') || videoUrl.includes('fb.watch') || videoUrl.includes('facebook.com') || videoUrl.includes('stories')){
+  if (!videoUrl || videoUrl.includes('t.me') || videoUrl.includes('threads.net') || videoUrl.includes('fb.watch') || videoUrl.includes('facebook.com')){
     console.error('URL do não reconhecida.');
     ctx.deleteMessage(message.message_id);
     await ctx.reply('Por favor envie um link reconhecido, como links do Instagram, Pinterest, Tumblr, Youtube, TikTok ou Reddit. Facebook e stories não são suportados.');
@@ -98,6 +98,7 @@ module.exports = async (ctx) => {
   // Executando o comando 'yt-dlp' para baixar o vídeo, incluindo o arquivo de cookies
   const ytDlp = spawn('yt-dlp', [
     '--cookies', cookiesPath,
+    '--cookies-from-browser', 'firefox',
     '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     '-o', fileName,
     videoUrl
