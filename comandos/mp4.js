@@ -119,10 +119,17 @@ module.exports = async (ctx) => {
     console.log(`yt-dlp process exited with code ${code}`);
     if (code === 0) {
       // Verificando o tamanho do arquivo baixado
-      const stats = fs.statSync(fileName);
-      const fileSizeInBytes = stats.size;
-      const fileSizeInMB = fileSizeInBytes / (1024 * 1024);
-
+      let fileSizeInMB = 0;
+      try {
+        const stats = fs.statSync(fileName);
+        const fileSizeInBytes = stats.size;
+        fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+      } catch (error) {
+        ctx.deleteMessage(message.message_id)
+        console.error(`Erro ao obter informações do arquivo: ${error}`);
+        await ctx.reply('O link enviado não pertence a um vídeo.');
+        return;
+      }
       if (fileSizeInMB > 49) {
         // Se o arquivo for muito grande, envia uma mensagem informando ao usuário
         const lowResolution = await ctx.reply('O arquivo original é muito grande e não pode ser enviado. Tentando enviar o mesmo vídeo em menor resolução...')
