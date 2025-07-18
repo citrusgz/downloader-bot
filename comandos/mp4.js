@@ -117,7 +117,14 @@ module.exports = async (ctx) => {
   // Capturando o evento de encerramento do comando 'yt-dlp'
   ytDlp.on('close', async (code) => {
     console.log(`yt-dlp process exited with code ${code}`);
-    if (code === 0) {
+    let fileExists = false;
+    try {
+      fileExists = fs.existsSync(fileName);
+    } catch (e) {
+      fileExists = false;
+    }
+
+    if (fileExists) {
       // Verificando o tamanho do arquivo baixado
       let fileSizeInMB = 0;
       try {
